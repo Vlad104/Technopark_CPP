@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 void foo( char *str[], int n ) {
-	
+	////sada
 }
 
 int main() {

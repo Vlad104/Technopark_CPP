@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
 
-void foo( char *line, int n ) {
-	//char * result = (char *)malloc(n*sizeof(char));
-	//memcpy(result, line, n*sizeof(char));
+char * foo( const char * line, int n ) {
 	char * result = (char *)malloc(sizeof(char));
 	int i = 0, j =0;
 	while (i < n) {
@@ -19,25 +16,34 @@ void foo( char *line, int n ) {
 		}
 	}
 	result[j] = '\0';
-	printf("result = %s\n", result);
-	return;
+	return result;
 }
 
 int main() {
 	while ( 1 == 1 ) {
+
 		char * line = (char *)malloc(sizeof(char));
 		char sym;
 		int i = 0;
 		
 		while ( (sym = getchar()) != '\n') {
+			line = (char *) realloc(line, (i+1)*sizeof(char));
 			line[i] = sym;
 			i++;
-			line = (char *) realloc(line, i*sizeof(char));
 		}
+		
+		/*
+		char * line;
+		scanf("%[^\n]%s", line);
+		int i = sizeof(line) / sizeof(char);
+		*/
+		
 		line[i] = '\0';
 		printf("input  = %s\n", line);
-		foo(line, i);
+		char * result = foo(line, i);
+		printf("result = %s\n", result);
 		free(line);
+		free(result);
 	}
 	
 	getchar();	

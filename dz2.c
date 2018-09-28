@@ -1,101 +1,79 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <errno.h>
 
-double makeDigit(const char * line2, int pos1, int pos2) {
-	int n = pos2 - pos1 - 1;
-	char * res = (char *) malloc (sizeof(char) * n);
-	memcpy(res, line2, n*sizeof(char));
-	return 	atof(res);
+float make_digit(const char * line, size_t *p_str_index) {
+	size_t str_index = *p_str_index;
+	size_t old_str_index = str_index;
+	while(isdigit(line[str_index]) || line[str_index] == '.') { /// proverka na granici
+		str_index++;
+	}
+	char * temp = (char * ) malloc( (str_index - old_str_index) * sizeof(char));
+	for (size_t i = old_str_index; i < str_index; i++) {
+		temp[i] = line[old_str_index + i];
+	}
+	float digit = atof(temp);
+	free(temp);
+	*p_str_index = str_index;
+	return digit;
 }
 
-double calculator( const char * line2) {
-	int i = 0;
-	int pos1 = 0, pos2 = 0;
-	double total = 0;
-	while (line2[i] != '\0') {
-		if (is_digit(line[i]) || (line[i] == '.')) {
-			pos2 = i;
-		} else { 
-			//make digit
-			pos1 = pos2;
+float polyak(const char * line) {
+	float stack[1000];
+	size_t stack_index = 0;	
+	size_t str_index = 0;
+	while (line[str_index] != '\0') {
+		char symbol = line[str_index];
+		switch (symbol) {
+			case ' ':
+				str_index++;
+			case '=':
+				return stack[stack_index - 1];
+				stack_index--;
+				str_index++;
+				break;
+			case '+':
+				stack[stack_index-2] += stack[stack_index -1];
+				stack_index--;
+				str_index++;
+				break;
+			case '-':
+				stack[stack_index-2] -= stack[stack_index -1];
+				stack_index--;
+				str_index++;
+				break;
+			case '*':
+				stack[stack_index-2] *= stack[stack_index -1];
+				stack_index--;
+				str_index++;
+				break;
+			case '/':
+				stack[stack_index-2] /= stack[stack_index -1];
+				stack_index--;
+				str_index++;
+				break;
+			default:
+				stack[stack_index] = make_digit(line, &str_index);
+				break;
 		}
 	}
-}
-
-char * deleteSpace( const char * line, int n ) {
-	char * result = (char *)malloc(sizeof(char));
-	int i = 0, j =0;
-	while (i < n) {
-		if ( i > 0 && line[i] == ' ') {
-			i++;
-		}
-		else {
-			result = (char *)realloc(result, (j+1)*sizeof(char));
-			if (errno == ENOMEM) {
-				return 0;
-			}
-			result[j] = line[i];
-			i++;
-			j++;
-		}
-	}
-	result[j] = '\0';
-	return result;
+	return stack[stack_index - 1];
 }
 
 
-bool is_correct( const char * line, int n) {
-	bool res = true;
-	int open_brackets = 0;
-	int close_brackets = 0;
-	for (int i = 0; i < n; i++) {
-		if (line[i] == '(') {
-			open_brackets++;
-		} else if (line[i] == ')') {
-			close_brackets++;	
-		}			
-	}
-	if (open_brackets != close_brackets) {
-		res = false;
-	}
-	
-	
-	return res;
-}
 
 
 int main() {
 	errno = 0;
-	char * line = (char *)malloc(sizeof(char));
-	if (errno == ENOMEM) {
-		return false;
-	}
-	char sym;
-	int i = 0;
-	
-	while ( (sym = getchar()) != '\n') {
-		line = (char *) realloc(line, (i+1)*sizeof(char));
-		if (errno == ENOMEM) {
-			return false;
-		}
-		line[i] = sym;
-		i++;
-	}		
-	line[i] = '\0';
-	
-	if (!is_correct(line, i)) {
-		printf("[ERROR]");
-	}
-	char * line2 = deleteSpace(line, i);
-	free(line);
-	
-	
-	double result = calculator(line, i);
-		
-	
+	char * line = NULL;
+	size_t size = 0;
+	ssize_t bytes = getline(&line, &size, stdin);
 
-	
-	getchar();	
+	float result = polyak(line);
+	printf("%.2f\n", result);
+
+
 	return 0;
 }

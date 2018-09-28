@@ -1,19 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>
+//#include <string.h>
 
 char ** deleteMultiSpace( char ** lines, int str_num ) {
 	char ** result = (char **) malloc(str_num*sizeof(char*));
 	if (errno == ENOMEM) {
-		printf("[error");
+		printf("[error]");
 		return 0;
 	}
 	for (int i = 0; i < str_num; i++) {
 		int str_len = 0, new_str_len = 0;		
 		result[i] = (char *)malloc(sizeof(char));
 		if (errno == ENOMEM) {
-			printf("[error");
+			printf("[error]");
 			return 0;
 		}
 		while (lines[i][str_len] != '\0') {
@@ -36,11 +36,11 @@ char ** deleteMultiSpace( char ** lines, int str_num ) {
 	return result;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 	errno = 0;
 	char ** lines = (char **)malloc(sizeof(char *));
 	if (errno == ENOMEM) {
-		printf("[error");
+		printf("[error]");
 		return 0;
 	}
 	char symbol = getchar();
@@ -68,21 +68,17 @@ int main() {
 		str_num++;
 		lines = (char **) realloc(lines, (str_num + 1) * sizeof(char*));
 		if (errno == ENOMEM) {
-			printf("[error");
+			printf("[error]");
 			return 0;
 		}
 		symbol = getchar();
 	}
 
-	for (int i = 0; i < str_num; i++) {
-		printf("%s\n", lines[i]);
-	}
-
-
 	char **result = deleteMultiSpace(lines, str_num);
 
 	for (int i = 0; i < str_num; i++) {
-		int nbytes = printf("%s\n", result[i]);
+		printf("%s\n", result[i]);
+		//int nbytes = printf("%s\n", result[i]);
 		//printf("bytes = %d\n", nbytes);
 		if (errno == EILSEQ || errno == EINVAL) {
 			printf("[error]");

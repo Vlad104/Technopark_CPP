@@ -9,9 +9,9 @@ char ** deleteMultiSpace( char ** lines, int str_num ) {
 		printf("[error");
 		return 0;
 	}
-		int str_len = 0, new_str_len =0;	
+		//int str_len = 0, new_str_len =0;	
 	for (int i = 0; i < str_num; i++) {
-		//int str_len = 0, new_str_len =0;		
+		int str_len = 0, new_str_len = 0;		
 		result[i] = (char *)malloc(sizeof(char));
 		while (lines[i][str_len] != '\0') {
 			if ( str_len > 0 && lines[i][str_len] == ' ' && lines[i][str_len-1] == ' ') {
@@ -21,16 +21,18 @@ char ** deleteMultiSpace( char ** lines, int str_num ) {
 				result[i][new_str_len] = lines[i][str_len];
 				str_len++;
 				new_str_len++;
-				result[i] = (char *)realloc(result, (new_str_len+1)*sizeof(char));
+				result[i] = (char *)realloc(result[i], (new_str_len+1)*sizeof(char));
 				if (errno == ENOMEM) {
 					printf("[error]");
 					return 0;
 				}
 			}
 		}
-		result[i][new_str_len] = '\n';
+		result[i][new_str_len] = '\0';
+		//printf("test1 = %s\n", lines[i]);
+		//printf("test2 = %s\n", result[i]);
 	}
-	result[str_num-1][new_str_len] = '\0';
+	//result[str_num-1][new_str_len] = '\0';
 	return result;
 }
 
@@ -69,21 +71,23 @@ int main() {
 	}
 
 
-	char ** result = deleteMultiSpace(lines, str_num);
+	char **result = deleteMultiSpace(lines, str_num);
 
 	for (int i = 0; i < str_num; i++) {
 		int nbytes = printf("%s\n", result[i]);
-		printf("bytes = %d\n", nbytes);
+		//printf("bytes = %d\n", nbytes);
 		if (errno == EILSEQ || errno == EINVAL) {
-			printf("[error");
+			printf("[error]");
 			return 0;
 		}
 	}
-	
+
 	for (int i = 0; i < str_num; i++) {
 		free(lines[i]);
 		free(result[i]);
 	}
+	free(lines);
+	free(result);
 	
 	//getchar();	
 	return 0;

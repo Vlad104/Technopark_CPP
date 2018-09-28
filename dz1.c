@@ -1,8 +1,10 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 //#include <string.h>
 
+// function delete multi spaces
 char ** deleteMultiSpace( char ** lines, int str_num ) {
 	char ** result = (char **) malloc(str_num*sizeof(char*));
 	if (errno == ENOMEM) {
@@ -10,17 +12,19 @@ char ** deleteMultiSpace( char ** lines, int str_num ) {
 		return 0;
 	}
 	for (int i = 0; i < str_num; i++) {
-		int str_len = 0, new_str_len = 0;		
+		int str_len = 0, new_str_len = 0;  // str_len index of input array, new_str_len index of output array, 
 		result[i] = (char *)malloc(sizeof(char));
 		if (errno == ENOMEM) {
 			printf("[error]");
 			return 0;
 		}
 		while (lines[i][str_len] != '\0') {
+			// if symbol is space and previous symboll is space too
 			if ( str_len > 0 && lines[i][str_len] == ' ' && lines[i][str_len-1] == ' ') {
 				str_len++;
 			}
-			else {
+			else { 
+				// copy other symbols
 				result[i][new_str_len] = lines[i][str_len];
 				str_len++;
 				new_str_len++;
@@ -31,6 +35,7 @@ char ** deleteMultiSpace( char ** lines, int str_num ) {
 				}
 			}
 		}
+		//printf("%d %d\n", str_len, new_str_len);
 		result[i][new_str_len] = '\0';
 	}
 	return result;
@@ -38,46 +43,35 @@ char ** deleteMultiSpace( char ** lines, int str_num ) {
 
 int main(int argc, char *argv[]) {
 	errno = 0;
-	char ** lines = (char **)malloc(sizeof(char *));
-	if (errno == ENOMEM) {
-		printf("[error]");
-		return 0;
-	}
-	char symbol = getchar();
-	int str_num = 0;
-	while ( symbol != EOF ) {
-		lines[str_num] = (char *)malloc(sizeof(char));
-		if (errno == ENOMEM) {
+	char ** lines = (char **) malloc(sizeof(char*)); // pointer to string array
+	size_t str_num = 0;	// numbers of string
+	//size_t size = 0;
+	ssize_t bytes = 0;
+
+	// start reading input strings
+	do {
+		lines[str_num] = NULL;
+		size_t size = 0;
+		bytes = getline(&lines[str_num], &size, stdin);
+		if ( errno == EINVAL || errno == ENOMEM) {		
 			printf("[error]");
 			return 0;
 		}
-		
-		int str_len = 0;
-		while ( symbol != '\n') {
-			lines[str_num][str_len] = symbol;
-			str_len++;
-			lines[str_num] = (char *) realloc(lines[str_num], (str_len+1)*sizeof(char));
-			if (errno == ENOMEM) {
-				printf("[error]");
-				return 0;
-			}
-			symbol = getchar();
-		}		
-		lines[str_num][str_len] = '\0';
-
 		str_num++;
 		lines = (char **) realloc(lines, (str_num + 1) * sizeof(char*));
 		if (errno == ENOMEM) {
 			printf("[error]");
 			return 0;
 		}
-		symbol = getchar();
-	}
 
-	char **result = deleteMultiSpace(lines, str_num);
+	} while (bytes > 0);
+	str_num--;
+	//printf("n = %ld\n", str_num);
 
-	for (int i = 0; i < str_num; i++) {
-		printf("%s\n", result[i]);
+	char **result = deleteMultiSpace(lines, str_num); // return pointer to modificated string array
+
+	for (int i = 0; i < str_num; i++) { // print strings
+		printf("%s", result[i]);
 		//int nbytes = printf("%s\n", result[i]);
 		//printf("bytes = %d\n", nbytes);
 		if (errno == EILSEQ || errno == EINVAL) {
@@ -86,8 +80,10 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	for (int i = 0; i < str_num; i++) {
+	for (int i = 0; i <= str_num; i++) { // clear memory
 		free(lines[i]);
+	}
+	for (int i = 0; i < str_num; i++) { // clear memory
 		free(result[i]);
 	}
 	free(lines);

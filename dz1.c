@@ -5,7 +5,7 @@
 //#include <string.h>
 
 // function delete multi spaces
-char ** deleteMultiSpace( char const * const * lines, size_t str_num ) {
+char ** deleteMultiSpace( char ** lines, size_t str_num ) {
 	char ** result = (char **) malloc(str_num*sizeof(char*));
 	if (errno == ENOMEM) {
 		printf("[error]");

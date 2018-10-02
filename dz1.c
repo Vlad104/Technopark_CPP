@@ -54,6 +54,10 @@ int main(int argc, char *argv[]) {
 		bytes = getline(&lines[str_num], &size, stdin);
 		if ( errno == EINVAL || errno == ENOMEM) {		
 			printf("[error]");
+			for (int i = 0; i < str_num; i++) {
+				free(line[i]);
+			}
+			free(line);
 			return 0;
 		}
 		str_num++;

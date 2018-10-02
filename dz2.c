@@ -7,6 +7,9 @@
 float make_digit(const char * line, size_t *p_str_index) {
 	size_t str_index = *p_str_index;
 	size_t old_str_index = str_index;
+	if (line[str_index] == '-') {
+		str_index++;		
+	}
 	while(isdigit(line[str_index]) || line[str_index] == '.') { /// proverka na granici
 		str_index++;
 	}
@@ -20,16 +23,15 @@ float make_digit(const char * line, size_t *p_str_index) {
 	return digit;
 }
 
-float polyak(const char * line) {
-	float stack[10];
+float calculatePolishNotation(const char * line, size_t size) {
+	float * stack = (float*) malloc(size * sizeof(float));
 	for (int i = 0; i < 10; i++) {
 		stack[i] = 0.0;
 	}
 	size_t stack_index = 0;	
 	size_t str_index = 0;
 	while (line[str_index] != '\0') {
-		char symbol = line[str_index];
-		switch (symbol) {
+		switch (line[str_index]) {
 			case ' ':
 				str_index++;
 				break;
@@ -43,11 +45,6 @@ float polyak(const char * line) {
 				stack_index--;
 				str_index++;
 				break;
-			case '-':
-				stack[stack_index-2] -= stack[stack_index -1];
-				stack_index--;
-				str_index++;
-				break;
 			case '*':
 				stack[stack_index-2] *= stack[stack_index -1];
 				stack_index--;
@@ -58,6 +55,13 @@ float polyak(const char * line) {
 				stack_index--;
 				str_index++;
 				break;
+			case '-':
+				if ( str_index > 0 && line[str_index-1] != ' ' ) {
+					stack[stack_index-2] -= stack[stack_index -1] ;
+					stack_index--;
+					str_index++;
+					break;
+				}
 			default:
 				stack[stack_index] = make_digit(line, &str_index);
 				stack_index++;
@@ -65,7 +69,7 @@ float polyak(const char * line) {
 		}
 
 		/*
-		printf("sym = %c, ind = %ld, stack = %ld\n", symbol, str_index, stack_index);
+		printf("sym = %c, ind = %ld, stack = %ld\n", line[str_index], str_index, stack_index);
 		for (int i = 0; i < 10; i++) {
 			printf("%.2f ", stack[i]);
 		}
@@ -76,29 +80,64 @@ float polyak(const char * line) {
 	return stack[stack_index - 1];
 }
 
-char * make_polish(const char * line) {
+char * deleteSpace(const char * line, size_t size ) {
+	char * result = (char *) malloc(size * sizeof(char));
+	if (errno == ENOMEM) {
+		printf("[error]");
+		return 0;
+	}
+	int i = 0;
+	while (line[i] != '\0') {
+		if (line[i] != ' ') {
+			result[i] = line[i];
+		}
+		i++;
+	}
+	result[i] = '\0';
+	return result;
+}
 
-	char * result = (char *) malloc(sizeof(char));
-	char * temp   = (char *) malloc(sizeof(char));
+char * toPolishNotation(const char * input_line, size_t size) {
+
+	char * line   = deleteSpace(input_line, size);
+	char * result = (char *) malloc(2*size * sizeof(char));
+	char * temp   = (char *) malloc(size * sizeof(char));
 	size_t line_index = 0;
 	size_t res_index  = 0;
 	size_t temp_index = 0;
 	while (line[line_index] != '\0') {
-		if (isdigit[line[line_index]] || line[line_index] == '.') {
+		if (isdigit(line[line_index]) || line[line_index] == '.') {
 			result[res_index] = line[line_index];
 			res_index++;
-		} else if (line[line_index] != ' ') {
+		} 
+		else if (line[line_index] == '-' && ( line_index == 0 || (line_index > 0 && !isdigit(line[line_index-1])))) {
+			result[res_index] = line[line_index];
+			res_index++;
+		}
+		else if (line[line_index] != ' ') {
 			if (line[line_index] == ')') {
-				result[res_index] = temp[temp_index-1];
+				temp_index--;
+				result[res_index] = temp[temp_index];
 				res_index++;				
 			} else if (line[line_index] != '(') {
+				result[res_index] = ' ';  // add space for number separation
+				res_index++;					
 				temp[temp_index] = line[line_index];
 				temp_index++;					
 			}		
 		}		
 		line_index++;
 	}
-
+	while (temp_index > 0) {
+		temp_index--;
+		if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
+			result[res_index] = temp[temp_index];
+			res_index++;
+		}
+	}
+	result[res_index] = '\0';
+	free(line);
+	free(temp);
 	return result;
 }
 
@@ -109,10 +148,12 @@ int main() {
 	size_t size = 0;
 	ssize_t bytes = getline(&line, &size, stdin);
 
-	//new_line = make_polish(line);
-	float result = polyak(line);
-	printf("%.2f\n", result);
+	char * new_line = toPolishNotation(line, size);
+	printf("%s\n", new_line);
 
+	float result = calculatePolishNotation(new_line, size);
+	printf("%.2f\n", result);
+	free(new_line);
 
 	return 0;
 }

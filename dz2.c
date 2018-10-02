@@ -208,7 +208,7 @@ int main() {
 	if (inter_line != NULL) {
 		free(inter_line);
 	}
-
+	printf("%s\n", new_line);
 	double result = calculatePolishNotation(new_line, size);
 	if (new_line != NULL) {
 		free(new_line);

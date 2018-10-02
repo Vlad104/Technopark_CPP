@@ -94,21 +94,43 @@ char * deleteSpace(const char * line, size_t size ) {
 		free(result);
 		return 0;
 	}
-	int i = 0;
+	int i = 0, j = 0;
 	while (line[i] != '\0') {
 		if (line[i] != ' ') {
-			result[i] = line[i];
+			result[j] = line[i];
+			j++;
 		}
 		i++;
 	}
-	result[i] = '\0';
+	result[j] = '\0';
 	return result;
 }
 
-char * toPolishNotation(const char * input_line, size_t size) {
+int isCorrect(const char * line) {
+	
+	int answer = 1;
+	int unclosed_brackets = 0;
+	int i = 0;
+	while (line[i] != '\0') {
+		if (line[i] == '(') {
+			unclosed_brackets++;
+		} else if (line[i] == ')') {
+			if (unclosed_brackets <= 0) {
+				return 0;
+			}
+			unclosed_brackets--;
+		}
+		i++;
+	}
+	if (unclosed_brackets != 0) {
+		answer = 0;
+	}
+	return answer;
+}
 
-	char * line   = deleteSpace(input_line, size);
-	char * result = (char *) malloc(2*size * sizeof(char));
+char * toPolishNotation(const char * line, size_t size) {
+
+	char * result = (char *) malloc(2 * size * sizeof(char));
 	if (errno == ENOMEM) {
 		printf("[error]");
 		free(result);
@@ -132,7 +154,6 @@ char * toPolishNotation(const char * input_line, size_t size) {
 			result[res_index] = line[line_index];
 			res_index++;
 		}
-		//else if (line[line_index] != ' ') {
 		else {
 			if (line[line_index] == ')') {
 				temp_index--;
@@ -155,8 +176,8 @@ char * toPolishNotation(const char * input_line, size_t size) {
 		}
 	}
 	result[res_index] = '\0';
-	free(line);
 	free(temp);
+
 	return result;
 }
 
@@ -172,12 +193,27 @@ int main() {
 		return 0;
 	}
 
-	char * new_line = toPolishNotation(line, size);
-	free(line);
-	//printf("%s\n", new_line);
+	if (isCorrect(line) == 0) {
+		printf("[error]");
+		free(line);
+		return 0;
+	}
+
+	char * inter_line = deleteSpace(line, size);
+	if (line != NULL) {
+		free(line);
+	}
+
+	char * new_line = toPolishNotation(inter_line, size);
+	if (inter_line != NULL) {
+		free(inter_line);
+	}
 
 	double result = calculatePolishNotation(new_line, size);
-	free(new_line);
+	if (new_line != NULL) {
+		free(new_line);
+	}
+
 	printf("%.2f\n", result);
 
 	return 0;

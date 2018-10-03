@@ -145,6 +145,7 @@ char * toPolishNotation(const char * line, size_t size) {
 	size_t line_index = 0;
 	size_t res_index  = 0;
 	size_t temp_index = 0;
+
 	while (line[line_index] != '\0') {
 		if (isdigit(line[line_index]) || line[line_index] == '.') {
 			result[res_index] = line[line_index];
@@ -156,10 +157,19 @@ char * toPolishNotation(const char * line, size_t size) {
 		}
 		else {
 			if (line[line_index] == ')') {
-				temp_index--;
-				result[res_index] = temp[temp_index];
-				res_index++;				
-			} else if (line[line_index] != '(') {
+				while(temp_index > 0 && temp[temp_index] != '(') {
+					temp_index--;
+					if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
+						result[res_index] = temp[temp_index];
+						res_index++;
+					}
+				}
+			} else if (line[line_index] == '(')  {
+				result[res_index] = ' ';  // add space for number separation
+				res_index++;					
+				temp[temp_index] = line[line_index];
+				temp_index++;	
+			} else {
 				result[res_index] = ' ';  // add space for number separation
 				res_index++;					
 				temp[temp_index] = line[line_index];
@@ -168,6 +178,7 @@ char * toPolishNotation(const char * line, size_t size) {
 		}		
 		line_index++;
 	}
+
 	while (temp_index > 0) {
 		temp_index--;
 		if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
@@ -176,6 +187,7 @@ char * toPolishNotation(const char * line, size_t size) {
 		}
 	}
 	result[res_index] = '\0';
+	//printf("%s\n", temp);
 	free(temp);
 
 	return result;
@@ -208,7 +220,10 @@ int main() {
 	if (inter_line != NULL) {
 		free(inter_line);
 	}
-	printf("%s\n", new_line);
+	//printf("%s\n", new_line);
+
+	//return 0;
+
 	double result = calculatePolishNotation(new_line, size);
 	if (new_line != NULL) {
 		free(new_line);

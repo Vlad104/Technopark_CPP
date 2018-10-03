@@ -119,6 +119,8 @@ int isCorrect(const char * line) {
 				return 0;
 			}
 			unclosed_brackets--;
+		} else if (!isdigit(line[i]) && line[i] != ' ' && line[i] != '.' && line[i] != '+' && line[i] != '-' && line[i] != '*' && line[i] != '/') {
+			return 0;
 		}
 		i++;
 	}

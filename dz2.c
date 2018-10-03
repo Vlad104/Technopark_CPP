@@ -136,7 +136,8 @@ char * toPolishNotation(const char * line, size_t size) {
 		free(result);
 		return 0;
 	}
-	char * temp   = (char *) malloc(size * sizeof(char));
+	//char * temp   = (char *) malloc(size * sizeof(char));
+	char * temp   = (char *) calloc('0', size * sizeof(char));
 	if (errno == ENOMEM) {
 		printf("[error]");
 		free(temp);
@@ -156,7 +157,10 @@ char * toPolishNotation(const char * line, size_t size) {
 			res_index++;
 		}
 		else {
-			if (line[line_index] == ')') {
+			if (line[line_index] == '(')  {			
+				temp[temp_index] = line[line_index];
+				temp_index++;	
+			} else if (line[line_index] == ')') {
 				while(temp_index > 0 && temp[temp_index] != '(') {
 					temp_index--;
 					if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
@@ -164,11 +168,6 @@ char * toPolishNotation(const char * line, size_t size) {
 						res_index++;
 					}
 				}
-			} else if (line[line_index] == '(')  {
-				result[res_index] = ' ';  // add space for number separation
-				res_index++;					
-				temp[temp_index] = line[line_index];
-				temp_index++;	
 			} else {
 				result[res_index] = ' ';  // add space for number separation
 				res_index++;					

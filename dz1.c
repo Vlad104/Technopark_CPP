@@ -66,8 +66,7 @@ int main(int argc, char *argv[]) {
 	do {
 		lines[str_num] = NULL;
 		size_t size = 0;
-		bytes = getline(&lines[str_num], &size, stdin); // считывание вхдной строки, getline динамически выделяет буфер кратный 120 байтам
-		printf("%d", size);
+		bytes = getline(&lines[str_num], &size, stdin); // считывание вхдной строки, getline динамически выделяет буфер, если он иницилизирован нулевым указателем
 		if ( errno == EINVAL || errno == ENOMEM) {	
 			printf("[error]");
 			for (int i = 0; i < str_num; i++) {

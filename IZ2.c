@@ -1,8 +1,199 @@
+/**
+Задача B-3. Парсер
+Time limit:	14 s
+Memory limit:	64 M
+Требуется написать программу, которая способна вычислять арифметические выражения. 
+Выражения могут содержать: 
+1) знаки операций '+', '-', '/', '*' 
+2) Скобки '(', ')' 
+3) Целые и вещественные числа, в нотации '123', '123.345', все операции должны быть вещественны, а результаты выведены с точностю до двух знаков после запятой в том числе целые '2.00' 
+4) необходимо учитывать приоритеты операций, и возможность унарного минуса, пробелы ничего не значат 
+5) Если в выражении встретилась ошибка требуется вывести в стандартный поток вывода "[error]" (без кавычек) 
+**/
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+
+char* read_line();
+int isCorrect(const char * line);
+char * deleteSpace(const char * line, size_t size );
+char * toPolishNotation(const char * line, size_t size);
+double make_digit(const char * line, size_t *p_str_index);
+double calculatePolishNotation(const char * line, size_t size);
+
+int main() {
+	errno = 0;
+	size_t size = 0;
+	char* line = read_line(&size);
+	if (line == NULL) {
+		printf("[error]");
+		return 0;
+	}
+	
+	// проверка корректности записи скобок, а также отсутствия лишних символов
+	if (isCorrect(line) == 0) {  
+		printf("[error]");
+		free(line);
+		return 0;
+	}
+
+  	// удаление всех пробелов
+	char* inter_line = deleteSpace(line, size);
+	if (inter_line == NULL) {
+		printf("[error]");
+		free(line);
+		return 0;
+	}
+	free(line);
+
+	// перевод выражения в обратную польскую запись
+	char* new_line = toPolishNotation(inter_line, size);  
+	if (new_line == NULL) {
+		printf("[error]");
+		free(inter_line);
+		return 0;
+	}
+	free(inter_line);
+
+  	// расчет выражения, представленного в польской записи
+	double result = calculatePolishNotation(new_line, size);
+	free(new_line);
+
+	printf("%.2f\n", result);
+
+	return 0;
+}
+
+// считываем входную строку
+char* read_line(size_t* p_size) {
+	char* line = NULL;
+	size_t size = 0;
+	ssize_t bytes = getline(&line, &size, stdin); // считываение входной строки
+	if ( errno == EINVAL || errno == ENOMEM || bytes <= 0) { // если ошибка, то освобождаем память и завершаем программу	
+		free(line);
+		return NULL;
+	}
+	*p_size = size;
+	return line;
+}
+
+// функция проверки корректности скобок, а также отсутствия символов отличных от цифр и арифметических операций во входной строке
+int isCorrect(const char * line) {	
+	int answer = 1;
+	int unclosed_brackets = 0;
+	int i = 0;
+	while (line[i] != '\0') {
+		if (line[i] == '(') {
+			unclosed_brackets++;
+		} else if (line[i] == ')') {
+			if (unclosed_brackets <= 0) { // открытая скобка не может встретиться раньше закрытой
+				return 0;
+			}
+			unclosed_brackets--;
+		} else if (!isdigit(line[i]) && line[i] != ' ' && line[i] != '.' && line[i] != '+' && line[i] != '-' && line[i] != '*' && line[i] != '/') {
+			return 0;
+		}
+		i++;
+	}
+	if (unclosed_brackets != 0) { // если число открытых скорок != числу закрытых
+		answer = 0;
+	}
+	return answer;
+}
+
+// удаление всех пробелов из входной последовательности
+char * deleteSpace(const char * line, size_t size ) {
+	char * result = (char *) malloc(size * sizeof(char));
+	if (errno == ENOMEM) {
+		printf("[error]");
+		free(result);
+		return 0;
+	}
+	int i = 0;
+	int j = 0;
+	while (line[i] != '\0') {
+		if (line[i] != ' ') {
+			result[j] = line[i];
+			j++;
+		}
+		i++;
+	}
+	result[j] = '\0';
+	return result;
+}
+
+// перевод входной последовательности выражения (очищенной от пробелов) в запись в обратной польской нотации
+char * toPolishNotation(const char * line, size_t size) {
+	 // выделяем память вдвое большую, так как неможем гарантировать, что запись в польской нотации не превысит 
+	 // размеров записи в обычной нотации (из-за вставки пробелов для различия разных чисел),
+	 // но можем гарантировать, что не превысит вдвое увеличенного буффера
+	char * result = (char *) malloc(2 * size * sizeof(char)); 
+	if (errno == ENOMEM) {
+		printf("[error]");
+		free(result);
+		return 0;
+	}
+
+	char * temp  = (char *) calloc('0', size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
+	if (errno == ENOMEM) {
+		printf("[error]");
+		free(temp);
+		return 0;
+	}
+	size_t line_index = 0;
+	size_t res_index  = 0;
+	size_t temp_index = 0;
+
+	while (line[line_index] != '\0') { 
+		// если цифра, то записываем её в конечный буффер
+		if (isdigit(line[line_index]) || line[line_index] == '.') {
+			result[res_index] = line[line_index];
+			res_index++;
+		} 
+		// проверям, относится ли этот минус к знаку числа, если относится, то тоже его в конечную последовательность
+		else if (line[line_index] == '-' && ( line_index == 0 || (line_index > 0 && !isdigit(line[line_index-1])))) {
+			result[res_index] = line[line_index];
+			res_index++;
+		}
+		// все остальные символы во временный буффер
+		else {
+			if (line[line_index] == '(')  { // и открывающуюся скобку тоже			
+				temp[temp_index] = line[line_index];
+				temp_index++;	
+			} else if (line[line_index] == ')') { // если видим закрывающуюся скобку, то идем по временному буферу в обратном порядке до откр. скобки и копируем все знаки операций в конечный буфер
+				while(temp_index > 0 && temp[temp_index] != '(') {
+					temp_index--;
+					if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
+						result[res_index] = temp[temp_index];
+						res_index++;
+					}
+				}
+			} else {
+				result[res_index] = ' ';  // добавляем пробел для разделения чисел
+				res_index++;					
+				temp[temp_index] = line[line_index];
+				temp_index++;					
+			}		
+		}		
+		line_index++;
+	}
+
+	while (temp_index > 0) { // когда обошли всю входную пследовательность, но во временном буффере еще остались символы, то переносим их от туда в конечный буффер
+		temp_index--;
+		if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
+			result[res_index] = temp[temp_index];
+			res_index++;
+		}
+	}
+	result[res_index] = '\0';
+	free(temp);
+
+	return result;
+}
+
 
  // преобразует строку в число с плавающей точкой
 double make_digit(const char * line, size_t *p_str_index) {
@@ -90,156 +281,4 @@ double calculatePolishNotation(const char * line, size_t size) {
 	double result = stack[stack_index - 1]; // 
 	free(stack);
 	return result;
-}
-
-// удаление всех пробелов из входной последовательности
-char * deleteSpace(const char * line, size_t size ) {
-	char * result = (char *) malloc(size * sizeof(char));
-	if (errno == ENOMEM) {
-		printf("[error]");
-		free(result);
-		return 0;
-	}
-	int i = 0, j = 0;
-	while (line[i] != '\0') {
-		if (line[i] != ' ') {
-			result[j] = line[i];
-			j++;
-		}
-		i++;
-	}
-	result[j] = '\0';
-	return result;
-}
-
-// функция проверки корректности скобок, а также отсутствия символов отличных от цифр и арифметических операций во входной строке
-int isCorrect(const char * line) {	
-	int answer = 1;
-	int unclosed_brackets = 0;
-	int i = 0;
-	while (line[i] != '\0') {
-		if (line[i] == '(') {
-			unclosed_brackets++;
-		} else if (line[i] == ')') {
-			if (unclosed_brackets <= 0) { // открытая скобка не может встретиться раньше закрытой
-				return 0;
-			}
-			unclosed_brackets--;
-		} else if (!isdigit(line[i]) && line[i] != ' ' && line[i] != '.' && line[i] != '+' && line[i] != '-' && line[i] != '*' && line[i] != '/') {
-			return 0;
-		}
-		i++;
-	}
-	if (unclosed_brackets != 0) { // если число открытых скорок != числу закрытых
-		answer = 0;
-	}
-	return answer;
-}
-
-// перевод входной последовательности выражения (очищенной от пробелов) в запись в обратной польской нотации
-char * toPolishNotation(const char * line, size_t size) {
-	 // выделяем память вдвое большую, так как неможем гарантировать, что запись в польской нотации не превысит 
-	 // размеров записи в обычной нотации (из-за вставки пробелов для различия разных чисел),
-	 // но можем гарантировать, что не превысит вдвое увеличенного буффера
-	char * result = (char *) malloc(2 * size * sizeof(char)); 
-	if (errno == ENOMEM) {
-		printf("[error]");
-		free(result);
-		return 0;
-	}
-
-	char * temp  = (char *) calloc('0', size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
-	if (errno == ENOMEM) {
-		printf("[error]");
-		free(temp);
-		return 0;
-	}
-	size_t line_index = 0;
-	size_t res_index  = 0;
-	size_t temp_index = 0;
-
-	while (line[line_index] != '\0') { 
-		// если цифра, то записываем её в конечный буффер
-		if (isdigit(line[line_index]) || line[line_index] == '.') {
-			result[res_index] = line[line_index];
-			res_index++;
-		} 
-		// проверям, относится ли этот минус к знаку числа, если относится, то тоже его в конечную последовательность
-		else if (line[line_index] == '-' && ( line_index == 0 || (line_index > 0 && !isdigit(line[line_index-1])))) {
-			result[res_index] = line[line_index];
-			res_index++;
-		}
-		// все остальные символы во временный буффер
-		else {
-			if (line[line_index] == '(')  { // и открывающуюся скобку тоже			
-				temp[temp_index] = line[line_index];
-				temp_index++;	
-			} else if (line[line_index] == ')') { // если видим закрывающуюся скобку, то идем по временному буферу в обратном порядке до откр. скобки и копируем все знаки операций в конечный буфер
-				while(temp_index > 0 && temp[temp_index] != '(') {
-					temp_index--;
-					if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
-						result[res_index] = temp[temp_index];
-						res_index++;
-					}
-				}
-			} else {
-				result[res_index] = ' ';  // добавляем пробел для разделения чисел
-				res_index++;					
-				temp[temp_index] = line[line_index];
-				temp_index++;					
-			}		
-		}		
-		line_index++;
-	}
-
-	while (temp_index > 0) { // когда обошли всю входную пследовательность, но во временном буффере еще остались символы, то переносим их от туда в конечный буффер
-		temp_index--;
-		if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
-			result[res_index] = temp[temp_index];
-			res_index++;
-		}
-	}
-	result[res_index] = '\0';
-	free(temp);
-
-	return result;
-}
-
-
-int main() {
-	errno = 0;
-	char * line = NULL;
-	size_t size = 0;
-	ssize_t bytes = getline(&line, &size, stdin); // считываение входной строки
-	if ( errno == EINVAL || errno == ENOMEM || bytes <= 0) { // если ошибка, то освобождаем память и завершаем программу	
-		printf("[error]");
-		free(line);
-		return 0;
-	}
-
-	if (isCorrect(line) == 0) {  // проверка корректности записи скобок, а также отсутствия лишних символов
-		printf("[error]");
-		free(line);
-		return 0;
-	}
-
-	char * inter_line = deleteSpace(line, size);  // удаление всех пробелов
-	if (line != NULL) {
-		free(line);
-	}
-
-	char * new_line = toPolishNotation(inter_line, size);  // перевод выражения в обратную польскую запись
-	if (inter_line != NULL) {
-		free(inter_line);
-	}
-	//printf("%s\n", new_line); // это если интересно взяглянуть на польскую запись
-
-	double result = calculatePolishNotation(new_line, size);  // расчет выражения, представленного в польской записи
-	if (new_line != NULL) {
-		free(new_line);
-	}
-
-	printf("%.2f\n", result);
-
-	return 0;
 }

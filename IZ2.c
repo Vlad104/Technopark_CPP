@@ -19,14 +19,14 @@ Memory limit:	64 M
 
 char* read_line();
 int is_correct(const char * line);
-char * delete_space(const char * line, size_t size );
-char * convert_to_polish_notation(const char * line, size_t size);
-double make_digit(const char * line, size_t *p_str_index);
-double calculate_polish_notation(const char * line, size_t size);
+char* delete_space(const char * line, size_t size );
+char* convert_to_polish_notation(const char * line, size_t size);
+void make_digit(const char * line, size_t *p_str_index, double* result);
+void calculate_polish_notation(const char * line, size_t size, double* result);
 
 int main() {
 	size_t size = 0;
-	char* line = read_line(&size);
+	char* line = read_line(&size); // считывание входной последовательности
 	if (line == NULL) {
 		printf("[error]");
 		return 0;
@@ -56,8 +56,13 @@ int main() {
 	}
 
   	// расчет выражения, представленного в польской записи
-	double result = calculate_polish_notation(new_line, size);
+	double result = 0.0;
+	calculate_polish_notation(new_line, size, &result);
 	free(new_line);
+	if (&result == NULL) {
+		printf("[error]");
+		return 0;
+	}
 
 	printf("%.2f\n", result);
 
@@ -106,8 +111,7 @@ int is_correct(const char* line) {
 char* delete_space(const char* line, size_t size ) {
 	char* result = (char*) malloc(size * sizeof(char));
 	if (errno == ENOMEM) {
-		printf("[error]");
-		return 0;
+		return NULL;
 	}
 	int i = 0;
 	int j = 0;
@@ -125,17 +129,15 @@ char* delete_space(const char* line, size_t size ) {
 // перевод входной последовательности выражения (очищенной от пробелов) в запись в обратной польской нотации
 char* convert_to_polish_notation(const char* line, size_t size) {
 	 // выделяем память вдвое большую, так как неможем гарантировать, что запись в польской нотации не превысит 
-	 // размеров записи в обычной нотации (из-за вставки пробелов для различия разных чисел),
+	 // размеров записи в обычной нотации (из-за вставки пробелов внутри этой функции для различия разных чисел),
 	 // но можем гарантировать, что не превысит вдвое увеличенного буффера
 	char* result = (char*) malloc(2 * size * sizeof(char)); 
 	if (errno == ENOMEM) {
-		printf("[error]");
 		return NULL;
 	}
 
 	char* temp  = (char*) calloc('0', size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
 	if (errno == ENOMEM) {
-		printf("[error]");
 		return NULL;
 	}
 	size_t line_index = 0;
@@ -191,15 +193,15 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 
 
  // преобразует строку в число с плавающей точкой
-double make_digit(const char* line, size_t* p_str_index) {
+void make_digit(const char* line, size_t* p_str_index, double* result) {
 	if (p_str_index == NULL) {
-		printf("[ERROR]");
-		return 0;
+		result = NULL;
+		return;
 	}
 	size_t str_index = *p_str_index;
 	size_t old_str_index = str_index;
-	// находим индекс начала и конца записи числа в строке
-	if (line[str_index] == '-') {
+	// далее находим индекс начала и конца записи числа в строке
+	if (line[str_index] == '-') { // если перый символ минус - то он относится к знаку числа
 		str_index++;		
 	}
 	while( line[str_index] != '\0' && (isdigit(line[str_index]) || line[str_index] == '.')) {
@@ -207,33 +209,35 @@ double make_digit(const char* line, size_t* p_str_index) {
 	}
 	char* temp = (char* ) malloc( (str_index - old_str_index + 1) * sizeof(char)); // выделяем память для строковой записи числа
 	if (errno == ENOMEM) {
-		printf("[error]");
-		return 0;
+		result = NULL; // для индикации ошибки после выхода из функции
+		return;
 	}
-	for (size_t i = 0; i < str_index - old_str_index; i++) { // копируем подстроку с числом из входно строки
+	for (size_t i = 0; i < str_index - old_str_index; i++) { // копируем подстроку с записью числа из входной строки
 		temp[i] = line[old_str_index + i];
 	}
 	temp[str_index - old_str_index] = '\0';
 	double digit = atof(temp); // преобразуем строку в число с плавающей точкой
 	free(temp);
 	if (errno == ERANGE) {
-		printf("[error]");
-		return 0;
+		result = NULL; // для индикации ошибки после выхода из функции
+		return;
 	}
 
 	*p_str_index = str_index;
-	return digit;
+	*result = digit;
+	return;
 }
 
 // функция вычисляет значение выражения записанного в обратной польской нотации
-double calculate_polish_notation(const char* line, size_t size) {
+void calculate_polish_notation(const char* line, size_t size, double* result) {
 	double* stack = (double*) malloc(size* sizeof(double));		
 	if (errno == ENOMEM) {
-		printf("[error]");
-		return 0;
+		result = NULL;
+		return;
 	}
 	size_t stack_index = 0;	
 	size_t str_index = 0;
+	double digit = 0.0;
 	 // посимвольно проходим по строке, если символ знак выражеия - проводим вычисление над двумя последними значениями в стеке
 	 // если символ - число, то записываем его в стек 
 	while (line[str_index] != '\0') {
@@ -242,7 +246,8 @@ double calculate_polish_notation(const char* line, size_t size) {
 				str_index++;
 				break;
 			case '=':
-				return stack[stack_index - 1];
+				*result = stack[stack_index - 1];
+				return;
 				stack_index--;
 				str_index++;
 				break;
@@ -268,13 +273,19 @@ double calculate_polish_notation(const char* line, size_t size) {
 					str_index++;
 					break;
 				}
-			default: // преобразуем подстроку в число и записываем его в стек, индекс str_index устанавливаем после это числа во входно строке
-				stack[stack_index] = make_digit(line, &str_index);
+				digit = 0.0;
+				make_digit(line, &str_index, &digit);
+				if (&digit == NULL) { // если произошла ошибка в make_digit
+					free(stack);
+					result = NULL;
+					return;
+				}
+				stack[stack_index] = digit;
 				stack_index++;
 				break;
 		}
 	}
-	double result = stack[stack_index - 1]; // 
+	*result = stack[stack_index - 1];
 	free(stack);
-	return result;
+	return;
 }

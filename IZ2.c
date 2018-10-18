@@ -64,7 +64,7 @@ int main() {
 		return 0;
 	}
 
-	printf("%.2f\n", result);
+	printf("%.2lf\n", result);
 
 	return 0;
 }
@@ -289,6 +289,7 @@ void calculate_polish_notation(const char* line, size_t size, double* result) {
 					str_index++;
 					break;
 				}
+			default:
 				digit = 0.0;
 				make_digit(line, &str_index, &digit);
 				if (&digit == NULL) { // если произошла ошибка в make_digit

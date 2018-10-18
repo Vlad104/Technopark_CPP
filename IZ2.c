@@ -55,7 +55,7 @@ int main() {
 		return 0;
 	}
 
-  	// расчет выражения, представленного в польской записи
+  	// расчет выражения, представленного в польской записи  
 	double result = 0.0;
 	calculate_polish_notation(new_line, size, &result);
 	free(new_line);
@@ -71,6 +71,9 @@ int main() {
 
 // считываем входную строку
 char* read_line(size_t* p_size) {
+	if (p_size == NULL) {
+		return NULL;	
+	}
 	char* line = NULL;
 	size_t size = 0;
 	ssize_t bytes = getline(&line, &size, stdin); // считываение входной строки
@@ -84,6 +87,9 @@ char* read_line(size_t* p_size) {
 
 // функция проверки корректности скобок, а также отсутствия символов отличных от цифр и арифметических операций во входной строке
 int is_correct(const char* line) {
+	if (line == NULL) {
+		return 0;	
+	}
 	int unclosed_brackets = 0;
 	int i = 0;
 	while (line[i] != '\0') {
@@ -109,6 +115,9 @@ int is_correct(const char* line) {
 
 // удаление всех пробелов из входной последовательности
 char* delete_space(const char* line, size_t size ) {
+	if (line == NULL) {
+		return NULL;	
+	}
 	char* result = (char*) malloc(size * sizeof(char));
 	if (errno == ENOMEM) {
 		return NULL;
@@ -128,6 +137,9 @@ char* delete_space(const char* line, size_t size ) {
 
 // перевод входной последовательности выражения (очищенной от пробелов) в запись в обратной польской нотации
 char* convert_to_polish_notation(const char* line, size_t size) {
+	if (line == NULL) {
+		return NULL;	
+	}
 	 // выделяем память вдвое большую, так как неможем гарантировать, что запись в польской нотации не превысит 
 	 // размеров записи в обычной нотации (из-за вставки пробелов внутри этой функции для различия разных чисел),
 	 // но можем гарантировать, что не превысит вдвое увеличенного буффера
@@ -194,8 +206,8 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 
  // преобразует строку в число с плавающей точкой
 void make_digit(const char* line, size_t* p_str_index, double* result) {
-	if (p_str_index == NULL) {
-		result = NULL;
+	if (line == NULL || p_str_index == NULL || result == NULL) {
+		result = NULL; // для индикации ошибки после выхода из функции
 		return;
 	}
 	size_t str_index = *p_str_index;
@@ -230,6 +242,10 @@ void make_digit(const char* line, size_t* p_str_index, double* result) {
 
 // функция вычисляет значение выражения записанного в обратной польской нотации
 void calculate_polish_notation(const char* line, size_t size, double* result) {
+	if (line == NULL || result == NULL) {
+		result = NULL;
+		return;		
+	}
 	double* stack = (double*) malloc(size* sizeof(double));		
 	if (errno == ENOMEM) {
 		result = NULL;

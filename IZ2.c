@@ -19,14 +19,14 @@ Memory limit:	64 M
 #include <stdbool.h>
 
 char* read_line();
-bool data_processing(const char* line, size_t size, double* p_result);
+bool data_processing(size_t size, char line[size], double* p_result);
 void print_result(const double result);
-bool is_correct(const char * line);
+bool is_correct_line(const char * line);
 bool is_correct_sign(const char symbol);
-char* delete_space(const char * line, size_t size );
-char* convert_to_polish_notation(const char * line, size_t size);
-bool make_digit(const char * line, size_t *p_str_index, double* result);
-bool calculate_polish_notation(const char * line, size_t size, double* result);
+char* delete_space(size_t size, const char line[size]);
+char* convert_to_polish_notation(size_t size, const char line[size]);
+bool make_digit(size_t* p_str_index, const char line[*p_str_index], double* result);
+bool calculate_polish_notation(size_t size, const char line[size], double* result);
 
 int main() {
 	size_t size = 0;
@@ -37,8 +37,8 @@ int main() {
 	}
 
 	double result = 0.0;
-	bool corect = data_processing(line, size, &result);
-	if (!corect) {
+	bool is_correct = data_processing(size, line, &result);
+	if (!is_correct) {
 		printf("[error]");
 		return 0;
 	}
@@ -65,17 +65,17 @@ char* read_line(size_t* p_size) {
 }
 
 // функция обработки входной послеовательности
-bool data_processing(const char* line, size_t size, double* p_result) {
+bool data_processing(size_t size, char line[size], double* p_result) {
 	bool is_correct = true;
 	// проверка корректности входной строки: корректные скобки, отсутствие лишних символов
-	if (is_correct(line) != 1) {  
-		is_correct = false;
+	if (!is_correct_line(line)) {  
 		free(line);
+		is_correct = false;		
 		return is_correct;
 	}
 
   	// удаление всех пробелов
-	char* inter_line = delete_space(line, size);
+	char* inter_line = delete_space(size, line);
 	free(line);
 	if (inter_line == NULL) {
 		is_correct = false;
@@ -83,7 +83,7 @@ bool data_processing(const char* line, size_t size, double* p_result) {
 	}
 
 	// перевод выражения в обратную польскую запись
-	char* new_line = convert_to_polish_notation(inter_line, size);
+	char* new_line = convert_to_polish_notation(size, inter_line);
 	free(inter_line);  
 	if (new_line == NULL) {
 		is_correct = false;
@@ -91,12 +91,9 @@ bool data_processing(const char* line, size_t size, double* p_result) {
 	}
 
   	// расчет выражения, представленного в польской записи  
-	int is_correct = calculate_polish_notation(new_line, size, p_result);
+	is_correct = calculate_polish_notation(size, new_line, p_result);
 	free(new_line);
-	if (!is_correct) {
-		is_correct = false;
-		return is_correct;
-	}
+
 	return is_correct;
 }
 
@@ -107,7 +104,7 @@ void print_result(const double result) {
 }
 
 // функция проверки корректности скобок, а также отсутствия символов отличных от цифр и арифметических операций во входной строке
-bool is_correct(const char* line) {
+bool is_correct_line(const char* line) {
 	bool is_correct = true;
 	if (line == NULL) {
 		is_correct = false;
@@ -125,7 +122,7 @@ bool is_correct(const char* line) {
 			}
 			--unclosed_brackets;
 		} 
-		else if (!isdigit(line[i]) && is_correct_sign(line[i]) ) {
+		else if (!isdigit(line[i]) && !is_correct_sign(line[i]) ) {
 			is_correct = false;
 		}
 		++i;
@@ -160,7 +157,7 @@ bool is_correct_sign(const char symbol) {
 }
 
 // удаление всех пробелов из входной последовательности
-char* delete_space(const char* line, size_t size ) {
+char* delete_space(size_t size, const char line[size]) {
 	if (line == NULL) {
 		return NULL;	
 	}
@@ -182,7 +179,7 @@ char* delete_space(const char* line, size_t size ) {
 }
 
 // перевод входной последовательности выражения (очищенной от пробелов) в запись в обратной польской нотации
-char* convert_to_polish_notation(const char* line, size_t size) {
+char* convert_to_polish_notation(size_t size, const char line[size]) {
 	if (line == NULL) {
 		return NULL;	
 	}
@@ -221,7 +218,7 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 			} else if (line[line_index] == ')') { // если видим закрывающуюся скобку, то идем по временному буферу в обратном порядке до откр. скобки и копируем все знаки операций в конечный буфер
 				while(temp_index > 0 && temp[temp_index] != '(') {
 					temp_index--;
-					if ( is_correct_sign(line[i]) ) {
+					if ( is_correct_sign(temp[temp_index]) ) {
 						result[res_index] = temp[temp_index];
 						res_index++;
 					}
@@ -238,7 +235,7 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 
 	while (temp_index > 0) { // когда обошли всю входную пследовательность, но во временном буффере еще остались символы, то переносим их от туда в конечный буффер
 		temp_index--;
-		if ( is_correct_sign(line[i]) ) {
+		if ( is_correct_sign(temp[temp_index]) ) {
 			result[res_index] = temp[temp_index];
 			res_index++;
 		}
@@ -252,7 +249,7 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 
 // преобразует строку в число с плавающей точкой
 // возвращает 0 в случае ошибок и 1 в их отсутствии
-bool make_digit(const char* line, size_t* p_str_index, double* result) {
+bool make_digit(size_t* p_str_index, const char line[*p_str_index], double* result) {
 	bool is_correct = true;
 	if (line == NULL || p_str_index == NULL || result == NULL) {
 		is_correct = false;
@@ -290,7 +287,7 @@ bool make_digit(const char* line, size_t* p_str_index, double* result) {
 
 // функция вычисляет значение выражения записанного в обратной польской нотации
 // возвращает 0 в случае ошибок и 1 в их отсутствии
-bool calculate_polish_notation(const char* line, size_t size, double* result) {
+bool calculate_polish_notation(size_t size, const char line[size], double* result) {
 	bool is_correct = true;	
 	if (line == NULL || result == NULL) {
 		is_correct = false;
@@ -335,7 +332,7 @@ bool calculate_polish_notation(const char* line, size_t size, double* result) {
 				}
 			default:
 				digit = 0.0;
-				is_correct = make_digit(line, &str_index, &digit);
+				is_correct = make_digit(&str_index, line, &digit);
 				if (!is_correct) {
 					free(stack);
 					return is_correct;		

@@ -16,13 +16,17 @@ Memory limit:	64 M
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdbool.h>
 
 char* read_line();
-int is_correct(const char * line);
+bool data_processing(const char* line, size_t size, double* p_result);
+void print_result(const double result);
+bool is_correct(const char * line);
+bool is_correct_sign(const char symbol);
 char* delete_space(const char * line, size_t size );
 char* convert_to_polish_notation(const char * line, size_t size);
-int make_digit(const char * line, size_t *p_str_index, double* result);
-int calculate_polish_notation(const char * line, size_t size, double* result);
+bool make_digit(const char * line, size_t *p_str_index, double* result);
+bool calculate_polish_notation(const char * line, size_t size, double* result);
 
 int main() {
 	size_t size = 0;
@@ -31,40 +35,15 @@ int main() {
 		printf("[error]");
 		return 0;
 	}
-	
-	// проверка корректности входной строки: корректные скобки, отсутствие лишних символов
-	if (is_correct(line) != 1) {  
-		printf("[error]");
-		free(line);
-		return 0;
-	}
 
-  	// удаление всех пробелов
-	char* inter_line = delete_space(line, size);
-	free(line);
-	if (inter_line == NULL) {
-		printf("[error]");
-		return 0;
-	}
-
-	// перевод выражения в обратную польскую запись
-	char* new_line = convert_to_polish_notation(inter_line, size);
-	free(inter_line);  
-	if (new_line == NULL) {
-		printf("[error]");
-		return 0;
-	}
-
-  	// расчет выражения, представленного в польской записи  
 	double result = 0.0;
-	int correct = calculate_polish_notation(new_line, size, &result);
-	free(new_line);
-	if (!correct) {
+	bool corect = data_processing(line, size, &result);
+	if (!corect) {
 		printf("[error]");
 		return 0;
 	}
 
-	printf("%.2lf\n", result);
+	print_result(result);
 
 	return 0;
 }
@@ -85,32 +64,99 @@ char* read_line(size_t* p_size) {
 	return line;
 }
 
+// функция обработки входной послеовательности
+bool data_processing(const char* line, size_t size, double* p_result) {
+	bool is_correct = true;
+	// проверка корректности входной строки: корректные скобки, отсутствие лишних символов
+	if (is_correct(line) != 1) {  
+		is_correct = false;
+		free(line);
+		return is_correct;
+	}
+
+  	// удаление всех пробелов
+	char* inter_line = delete_space(line, size);
+	free(line);
+	if (inter_line == NULL) {
+		is_correct = false;
+		return is_correct;
+	}
+
+	// перевод выражения в обратную польскую запись
+	char* new_line = convert_to_polish_notation(inter_line, size);
+	free(inter_line);  
+	if (new_line == NULL) {
+		is_correct = false;
+		return is_correct;
+	}
+
+  	// расчет выражения, представленного в польской записи  
+	int is_correct = calculate_polish_notation(new_line, size, p_result);
+	free(new_line);
+	if (!is_correct) {
+		is_correct = false;
+		return is_correct;
+	}
+	return is_correct;
+}
+
+// функция вывод результата выполнения программы
+void print_result(const double result) {
+	printf("%.2lf\n", result);
+	return;
+}
+
 // функция проверки корректности скобок, а также отсутствия символов отличных от цифр и арифметических операций во входной строке
-int is_correct(const char* line) {
+bool is_correct(const char* line) {
+	bool is_correct = true;
 	if (line == NULL) {
-		return 0;	
+		is_correct = false;
+		return is_correct;	
 	}
 	int unclosed_brackets = 0;
 	int i = 0;
-	while (line[i] != '\0') {
+	while (line[i] != '\0' && is_correct) {
 		if (line[i] == '(') {
-			unclosed_brackets++;
+			++unclosed_brackets;
 		} 
 		else if (line[i] == ')') {
 			if (unclosed_brackets <= 0) { // открытая скобка не может встретиться раньше закрытой
-				return 0;
+				is_correct = false;
 			}
-			unclosed_brackets--;
+			--unclosed_brackets;
 		} 
-		else if (!isdigit(line[i]) && line[i] != ' ' && line[i] != '.' && line[i] != '+' && line[i] != '-' && line[i] != '*' && line[i] != '/') {
-			return 0;
+		else if (!isdigit(line[i]) && is_correct_sign(line[i]) ) {
+			is_correct = false;
 		}
-		i++;
+		++i;
 	}
 	if (unclosed_brackets != 0) { // если число открытых скорок != числу закрытых
-		return 0;
+		is_correct = false;
 	}
-	return 1;
+	return is_correct;
+}
+
+// проверяет, относится ли символ к допустимым в арифметических операциях (+, -, * итд)
+bool is_correct_sign(const char symbol) {
+	bool is_correct = true;
+	switch (symbol) {
+		case ' ':
+			break;
+		case '.':
+			break;
+		case '+':
+			break;
+		case '-':
+			break;
+		case '*':
+			break;
+		case '/':
+			break;
+		default:
+			is_correct = false;
+			break;
+	}
+	return is_correct;
 }
 
 // удаление всех пробелов из входной последовательности
@@ -175,7 +221,7 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 			} else if (line[line_index] == ')') { // если видим закрывающуюся скобку, то идем по временному буферу в обратном порядке до откр. скобки и копируем все знаки операций в конечный буфер
 				while(temp_index > 0 && temp[temp_index] != '(') {
 					temp_index--;
-					if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
+					if ( is_correct_sign(line[i]) ) {
 						result[res_index] = temp[temp_index];
 						res_index++;
 					}
@@ -192,7 +238,7 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 
 	while (temp_index > 0) { // когда обошли всю входную пследовательность, но во временном буффере еще остались символы, то переносим их от туда в конечный буффер
 		temp_index--;
-		if (temp[temp_index] == '+' || temp[temp_index] == '-' || temp[temp_index] == '*' || temp[temp_index] == '/') {
+		if ( is_correct_sign(line[i]) ) {
 			result[res_index] = temp[temp_index];
 			res_index++;
 		}
@@ -206,9 +252,11 @@ char* convert_to_polish_notation(const char* line, size_t size) {
 
 // преобразует строку в число с плавающей точкой
 // возвращает 0 в случае ошибок и 1 в их отсутствии
-int make_digit(const char* line, size_t* p_str_index, double* result) {
+bool make_digit(const char* line, size_t* p_str_index, double* result) {
+	bool is_correct = true;
 	if (line == NULL || p_str_index == NULL || result == NULL) {
-		return 0;
+		is_correct = false;
+		return is_correct;
 	}
 	size_t str_index = *p_str_index;
 	size_t old_str_index = str_index;
@@ -221,7 +269,8 @@ int make_digit(const char* line, size_t* p_str_index, double* result) {
 	}
 	char* temp = (char* ) malloc( (str_index - old_str_index + 1) * sizeof(char)); // выделяем память для строковой записи числа
 	if (errno == ENOMEM) {
-		return 0;
+		is_correct = false;
+		return is_correct;
 	}
 	for (size_t i = 0; i < str_index - old_str_index; i++) { // копируем подстроку с записью числа из входной строки
 		temp[i] = line[old_str_index + i];
@@ -230,23 +279,27 @@ int make_digit(const char* line, size_t* p_str_index, double* result) {
 	double digit = atof(temp); // преобразуем строку в число с плавающей точкой
 	free(temp);
 	if (errno == ERANGE) {
-		return 0;
+		is_correct = false;
+		return is_correct;
 	}
 
 	*p_str_index = str_index;
 	*result = digit;
-	return 1;
+	return is_correct;
 }
 
 // функция вычисляет значение выражения записанного в обратной польской нотации
 // возвращает 0 в случае ошибок и 1 в их отсутствии
-int calculate_polish_notation(const char* line, size_t size, double* result) {
+bool calculate_polish_notation(const char* line, size_t size, double* result) {
+	bool is_correct = true;	
 	if (line == NULL || result == NULL) {
-		return 0;		
+		is_correct = false;
+		return is_correct;		
 	}
 	double* stack = (double*) malloc(size* sizeof(double));		
 	if (errno == ENOMEM) {
-		return 0;
+		is_correct = false;
+		return is_correct;		
 	}
 	size_t stack_index = 0;	
 	size_t str_index = 0;
@@ -282,10 +335,10 @@ int calculate_polish_notation(const char* line, size_t size, double* result) {
 				}
 			default:
 				digit = 0.0;
-				int correct = make_digit(line, &str_index, &digit);
-				if (!correct) { // если произошла ошибка в make_digit
+				is_correct = make_digit(line, &str_index, &digit);
+				if (!is_correct) {
 					free(stack);
-					return 0;
+					return is_correct;		
 				}
 				stack[stack_index] = digit;
 				stack_index++;
@@ -294,5 +347,5 @@ int calculate_polish_notation(const char* line, size_t size, double* result) {
 	}
 	*result = stack[stack_index - 1];
 	free(stack);
-	return 1;
+	return is_correct;
 }

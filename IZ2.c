@@ -27,6 +27,7 @@ char* delete_space(size_t size, const char line[size]);
 char* convert_to_polish_notation(size_t size, const char line[size]);
 bool make_digit(size_t* p_str_index, const char line[*p_str_index], double* result);
 bool calculate_polish_notation(size_t size, const char line[size], double* result);
+bool arithmetic(size_t* p_stack_index, double stack[*p_stack_index], const char element) ;
 
 int main() {
 	size_t size = 0;
@@ -170,9 +171,9 @@ char* delete_space(size_t size, const char line[size]) {
 	while (line[i] != '\0') {
 		if (line[i] != ' ') {
 			result[j] = line[i];
-			j++;
+			++j;
 		}
-		i++;
+		++i;
 	}
 	result[j] = '\0';
 	return result;
@@ -191,8 +192,8 @@ char* convert_to_polish_notation(size_t size, const char line[size]) {
 		return NULL;
 	}
 
-	//char* temp  = (char*) calloc('0', size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
-	char* temp  = (char*) malloc(size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
+	const char array_init_symbol = ' ';
+	char* temp  = (char*) calloc(array_init_symbol, size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
 	if (errno == ENOMEM) {
 		return NULL;
 	}
@@ -204,41 +205,41 @@ char* convert_to_polish_notation(size_t size, const char line[size]) {
 		// если цифра, то записываем её в конечный буффер
 		if (isdigit(line[line_index]) || line[line_index] == '.') {
 			result[res_index] = line[line_index];
-			res_index++;
+			++res_index;
 		} 
 		// проверям, относится ли этот минус к знаку числа, если относится, то тоже его в конечную последовательность
 		else if (line[line_index] == '-' && ( line_index == 0 || (line_index > 0 && !isdigit(line[line_index-1])))) {
 			result[res_index] = line[line_index];
-			res_index++;
+			++res_index;
 		}
 		// все остальные символы во временный буффер
 		else {
 			if (line[line_index] == '(')  { // и открывающуюся скобку тоже			
 				temp[temp_index] = line[line_index];
-				temp_index++;	
+				++temp_index;	
 			} else if (line[line_index] == ')') { // если видим закрывающуюся скобку, то идем по временному буферу в обратном порядке до откр. скобки и копируем все знаки операций в конечный буфер
 				while(temp_index > 0 && temp[temp_index] != '(') {
-					temp_index--;
+					--temp_index;
 					if ( is_correct_simbol(temp[temp_index]) ) {
 						result[res_index] = temp[temp_index];
-						res_index++;
+						++res_index;
 					}
 				}
 			} else {
 				result[res_index] = ' ';  // добавляем пробел для разделения чисел
-				res_index++;					
+				++res_index;					
 				temp[temp_index] = line[line_index];
-				temp_index++;					
+				++temp_index;					
 			}		
 		}		
-		line_index++;
+		++line_index;
 	}
 
 	while (temp_index > 0) { // когда обошли всю входную пследовательность, но во временном буффере еще остались символы, то переносим их от туда в конечный буффер
-		temp_index--;
+		--temp_index;
 		if ( is_correct_simbol(temp[temp_index]) ) {
 			result[res_index] = temp[temp_index];
-			res_index++;
+			++res_index;
 		}
 	}
 	result[res_index] = '\0';
@@ -260,10 +261,10 @@ bool make_digit(size_t* p_str_index, const char line[*p_str_index], double* resu
 	size_t old_str_index = str_index;
 	// далее находим индекс начала и конца записи числа в строке
 	if (line[str_index] == '-') { // если перый символ минус - то он относится к знаку числа
-		str_index++;		
+		++str_index;		
 	}
 	while( line[str_index] != '\0' && (isdigit(line[str_index]) || line[str_index] == '.')) {
-		str_index++;
+		++str_index;
 	}
 	char* temp = (char* ) malloc( (str_index - old_str_index + 1) * sizeof(char)); // выделяем память для строковой записи числа
 	if (errno == ENOMEM) {
@@ -301,49 +302,55 @@ bool calculate_polish_notation(size_t size, const char line[size], double* resul
 	}
 	size_t stack_index = 0;	
 	size_t str_index = 0;
-	double digit = 0.0;
 	 // посимвольно проходим по строке, если символ знак выражеия - проводим вычисление над двумя последними значениями в стеке
 	 // если символ - число, то записываем его в стек 
-	while (line[str_index] != '\0') {
-		switch (line[str_index]) {
-			case ' ':
-				str_index++;
-				break;
-			case '+':
-				stack[stack_index - 2] += stack[stack_index - 1];
-				stack_index--;
-				str_index++;
-				break;
-			case '*':
-				stack[stack_index - 2] *= stack[stack_index - 1];
-				stack_index--;
-				str_index++;
-				break;
-			case '/':
-				stack[stack_index - 2] /= stack[stack_index - 1];
-				stack_index--;
-				str_index++;
-				break;
-			case '-':
-				if ( str_index > 0 && line[str_index-1] != ' ' ) {  // если это отдельно стоящий минус - то это знак операции, иначе это знак числа, тогда мы "проваливаемся" в default
-					stack[stack_index - 2] -= stack[stack_index - 1] ;
-					stack_index--;
-					str_index++;
-					break;
-				}
-			default:
-				digit = 0.0;
-				is_correct = make_digit(&str_index, line, &digit);
-				if (!is_correct) {
-					free(stack);
-					return is_correct;		
-				}
-				stack[stack_index] = digit;
-				stack_index++;
-				break;
+	while ( (line[str_index] != '\0') && is_correct) {
+		bool minus_type = str_index > 0 && line[str_index - 1] != ' '; // если это отдельно стоящий минус - то это знак операци
+		if ( is_correct_simbol(line[str_index]) && minus_type ) { // если знак операции
+			is_correct = arithmetic(&stack_index, stack, line[str_index]);
+			++str_index;
+		}
+		else { 
+			double digit = 0.0;
+			is_correct = make_digit(&str_index, line, &digit);
+			stack[stack_index] = digit;
+			++stack_index;
 		}
 	}
-	*result = stack[stack_index - 1];
+	if (is_correct) {
+		*result = stack[stack_index - 1];
+	}
 	free(stack);
+	return is_correct;
+}
+
+bool arithmetic(size_t* p_stack_index, double stack[*p_stack_index], const char element) {
+	bool is_correct = true;
+	if (p_stack_index == NULL  || stack == NULL) {
+		is_correct = false;
+		return is_correct;
+	}
+	int stack_index = *p_stack_index;
+	switch (element) {
+		case '+':
+			stack[stack_index - 2] += stack[stack_index - 1];
+			break;
+		case '*':
+			stack[stack_index - 2] *= stack[stack_index - 1];
+			break;
+		case '/':
+			stack[stack_index - 2] /= stack[stack_index - 1];
+			break;
+		case '-':
+			stack[stack_index - 2] -= stack[stack_index - 1] ;
+			break;
+		default:
+			break;
+	}	
+	if (is_correct_simbol(element) && element != ' ') {
+		--stack_index;		
+	}
+	*p_stack_index = stack_index;
+
 	return is_correct;
 }

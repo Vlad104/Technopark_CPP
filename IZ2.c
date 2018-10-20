@@ -21,8 +21,8 @@ Memory limit:	64 M
 char* read_line();
 bool data_processing(size_t size, char line[size], double* p_result);
 void print_result(const double result);
-bool is_correct_line(const char * line);
-bool is_correct_sign(const char symbol);
+bool is_correct_line(const char* line);
+bool is_correct_simbol(const char symbol);
 char* delete_space(size_t size, const char line[size]);
 char* convert_to_polish_notation(size_t size, const char line[size]);
 bool make_digit(size_t* p_str_index, const char line[*p_str_index], double* result);
@@ -122,7 +122,7 @@ bool is_correct_line(const char* line) {
 			}
 			--unclosed_brackets;
 		} 
-		else if (!isdigit(line[i]) && !is_correct_sign(line[i]) ) {
+		else if (!isdigit(line[i]) && !is_correct_simbol(line[i]) ) {
 			is_correct = false;
 		}
 		++i;
@@ -134,7 +134,7 @@ bool is_correct_line(const char* line) {
 }
 
 // проверяет, относится ли символ к допустимым в арифметических операциях (+, -, * итд)
-bool is_correct_sign(const char symbol) {
+bool is_correct_simbol(const char symbol) {
 	bool is_correct = true;
 	switch (symbol) {
 		case ' ':
@@ -191,7 +191,8 @@ char* convert_to_polish_notation(size_t size, const char line[size]) {
 		return NULL;
 	}
 
-	char* temp  = (char*) calloc('0', size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
+	//char* temp  = (char*) calloc('0', size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
+	char* temp  = (char*) malloc(size * sizeof(char)); // временный буфер, нужен для хранения скобок и знаков операций, цифры попадают сразу в конечный буфер
 	if (errno == ENOMEM) {
 		return NULL;
 	}
@@ -218,7 +219,7 @@ char* convert_to_polish_notation(size_t size, const char line[size]) {
 			} else if (line[line_index] == ')') { // если видим закрывающуюся скобку, то идем по временному буферу в обратном порядке до откр. скобки и копируем все знаки операций в конечный буфер
 				while(temp_index > 0 && temp[temp_index] != '(') {
 					temp_index--;
-					if ( is_correct_sign(temp[temp_index]) ) {
+					if ( is_correct_simbol(temp[temp_index]) ) {
 						result[res_index] = temp[temp_index];
 						res_index++;
 					}
@@ -235,7 +236,7 @@ char* convert_to_polish_notation(size_t size, const char line[size]) {
 
 	while (temp_index > 0) { // когда обошли всю входную пследовательность, но во временном буффере еще остались символы, то переносим их от туда в конечный буффер
 		temp_index--;
-		if ( is_correct_sign(temp[temp_index]) ) {
+		if ( is_correct_simbol(temp[temp_index]) ) {
 			result[res_index] = temp[temp_index];
 			res_index++;
 		}
@@ -293,7 +294,7 @@ bool calculate_polish_notation(size_t size, const char line[size], double* resul
 		is_correct = false;
 		return is_correct;		
 	}
-	double* stack = (double*) malloc(size* sizeof(double));		
+	double* stack = (double*) malloc(size * sizeof(double));		
 	if (errno == ENOMEM) {
 		is_correct = false;
 		return is_correct;		
@@ -309,23 +310,23 @@ bool calculate_polish_notation(size_t size, const char line[size], double* resul
 				str_index++;
 				break;
 			case '+':
-				stack[stack_index-2] += stack[stack_index -1];
+				stack[stack_index - 2] += stack[stack_index - 1];
 				stack_index--;
 				str_index++;
 				break;
 			case '*':
-				stack[stack_index-2] *= stack[stack_index -1];
+				stack[stack_index - 2] *= stack[stack_index - 1];
 				stack_index--;
 				str_index++;
 				break;
 			case '/':
-				stack[stack_index-2] /= stack[stack_index -1];
+				stack[stack_index - 2] /= stack[stack_index - 1];
 				stack_index--;
 				str_index++;
 				break;
 			case '-':
 				if ( str_index > 0 && line[str_index-1] != ' ' ) {  // если это отдельно стоящий минус - то это знак операции, иначе это знак числа, тогда мы "проваливаемся" в default
-					stack[stack_index-2] -= stack[stack_index -1] ;
+					stack[stack_index - 2] -= stack[stack_index - 1] ;
 					stack_index--;
 					str_index++;
 					break;
